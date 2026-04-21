@@ -152,13 +152,64 @@
   .dim-card-bar-bg { height: 5px; border-radius: 3px; background: #e5e7eb; }
   .dim-card-bar-fill { height: 5px; border-radius: 3px; }
   .dim-card-val { font-size: 13px; font-weight: 600; margin-top: 3px; }
+/* ── Mobile Sidebar Behavior ── */
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed;
+    top: 52px;
+    left: 0;
+    height: calc(100% - 52px);
+    width: 85%;
+    max-width: 320px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 100;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .filter-fab {
+    display: block;
+  }
+}
+
+/* Floating filter button */
+.filter-fab {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--li-blue);
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 110;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* Backdrop */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 90;
+}
 </style>
 </head>
 <body>
 
 <div class="app">
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="closeSidebar()"></div>
   <div class="header">
     <div class="li-logo">in</div>
+    <button onclick="toggleSidebar()" style="margin-right:10px; font-size:18px;">☰</button>
     <h3>Executive Search Agent | Expert Relational Mode</h3>
   </div>
 
@@ -356,6 +407,10 @@ function applyFilters() {
   renderList();
   renderMath();
   if (state.activeTab === 'graph') renderChart();
+    // 👉 CLOSE SIDEBAR ON MOBILE
+  if (window.innerWidth <= 900) {
+    closeSidebar();
+  }
 }
 
 function resetFilters() {
@@ -540,6 +595,32 @@ function switchTab(tabId, el) {
   state.activeTab = tabId;
   if (tabId === 'graph') renderChart();
 }
+
+// ── Mobile Sidebar Logic ─────────────────────────────
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+
+  const isOpen = sidebar.classList.contains('open');
+
+  if (isOpen) {
+    closeSidebar();
+  } else {
+    sidebar.classList.add('open');
+    backdrop.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+
+  sidebar.classList.remove('open');
+  backdrop.style.display = 'none';
+  document.body.style.overflow = 'auto';
+}
 </script>
+<button class="filter-fab" onclick="toggleSidebar()">Filters</button>
 </body>
 </html>
