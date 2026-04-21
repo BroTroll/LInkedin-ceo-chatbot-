@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEO Finder Bot | Expert Mode</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --li-blue: #0a66c2;
+    --li-bg: #f3f2ef;
+    --li-text: #000000e6;
+    --li-gray: #666666;
+    --degree-1: #059669;
+    --degree-2: #d97706;
+    --degree-3: #0a66c2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    background: var(--li-bg); margin: 0; padding: 0; color: var(--li-text);
+  }
+  .app { display: flex; height: 100vh; overflow: hidden; padding-top: 52px; }
+
+  /* ── Header ── */
+  .header {
+    position: absolute; top: 0; left: 0; width: 100%; height: 52px;
+    background: white; border-bottom: 1px solid #ddd;
+    display: flex; align-items: center; padding: 0 20px; z-index: 10;
+  }
+  .li-logo { background: var(--li-blue); color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 18px; margin-right: 10px; }
+  .header h3 { margin: 0; font-weight: 600; font-size: 16px; }
+
+  /* ── Sidebar ── */
+  .sidebar { width: 300px; background: white; padding: 16px; border-right: 1px solid #ddd; overflow-y: auto; flex-shrink: 0; }
+  .sidebar-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--li-gray); margin-bottom: 14px; }
+  .filter-group { margin-bottom: 16px; }
+  .filter-group label { display: block; font-weight: 600; font-size: 12px; margin-bottom: 6px; color: var(--li-gray); }
+  .filter-group input[type="text"],
+  .filter-group input[type="number"],
+  .filter-group select {
+    width: 100%; padding: 7px 9px; border: 1px solid #ccc;
+    border-radius: 4px; font-size: 13px; background: white;
+  }
+  .filter-group input[type="range"] { width: 100%; margin-top: 4px; accent-color: var(--li-blue); }
+  .range-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--li-gray); }
+  .ideal-size-row { display: flex; gap: 6px; align-items: center; }
+  .ideal-size-row input { flex: 1; }
+  .ideal-size-row span { font-size: 11px; color: var(--li-gray); white-space: nowrap; }
+  .btn-primary {
+    background: var(--li-blue); color: white; border: none;
+    padding: 9px 18px; border-radius: 24px; cursor: pointer;
+    font-weight: 600; font-size: 13px; transition: background .2s;
+  }
+  .btn-primary:hover { background: #004182; }
+  .btn-secondary {
+    background: white; color: var(--li-gray); border: 1px solid #ccc;
+    padding: 9px 18px; border-radius: 24px; cursor: pointer;
+    font-weight: 600; font-size: 13px; transition: background .2s; margin-top: 8px;
+  }
+  .btn-secondary:hover { background: #f0f0f0; }
+
+  /* ── Main ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .search-bar { display: flex; gap: 10px; padding: 16px 20px; background: white; border-bottom: 1px solid #ddd; }
+  .search-bar input { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; border-bottom: 1px solid #ddd; background: white; padding: 0 20px; }
+  .tab { padding: 12px 18px; cursor: pointer; color: var(--li-gray); font-weight: 600; font-size: 14px; border-bottom: 2px solid transparent; }
+  .tab.active { border-bottom: 2px solid var(--li-blue); color: var(--li-blue); }
+
+  /* ── Content ── */
+  .content { flex: 1; overflow-y: auto; padding: 20px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .bot-msg {
+    background: #e0f2fe; color: #0369a1; padding: 12px 16px;
+    border-radius: 8px; margin-bottom: 16px; font-size: 14px;
+    border: 1px solid #bae6fd; display: flex; align-items: center; gap: 10px;
+  }
+  .spinner {
+    width: 16px; height: 16px; border: 2px solid #bae6fd;
+    border-top-color: #0369a1; border-radius: 50%;
+    animation: spin .7s linear infinite; flex-shrink: 0; display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── CEO Cards ── */
+  .ceo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+
+  .card {
+    background: white; border: 1px solid #ddd; border-radius: 8px;
+    padding: 14px; display: flex; flex-direction: column;
+    gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    transition: transform .1s, box-shadow .1s; cursor: pointer;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,.1); }
+
+  .card-top { display: flex; gap: 12px; align-items: flex-start; }
+  .avatar {
+    width: 52px; height: 52px; border-radius: 50%; background: #94a3b8;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; color: white; font-size: 18px; flex-shrink: 0;
+  }
+  .card-info { flex: 1; min-width: 0; }
+  .card-name { font-weight: 600; font-size: 15px; color: var(--li-blue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-company { font-size: 13px; color: var(--li-text); font-weight: 500; }
+  .card-title { font-size: 12px; color: var(--li-gray); margin-top: 2px; }
+
+  .badges { display: flex; gap: 5px; flex-wrap: wrap; }
+  .badge { background: var(--li-bg); color: var(--li-gray); padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid #e5e7eb; white-space: nowrap; }
+  .badge-match { background: #E6F1FB; color: var(--li-blue); border-color: #0a66c2; }
+  .badge-sec    { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+  .badge-forbes { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+  .badge-1st    { color: var(--degree-1); }
+  .badge-2nd    { color: var(--degree-2); }
+
+  /* Bio expand */
+  .card-bio { font-size: 12px; color: var(--li-gray); line-height: 1.5; display: none; border-top: 1px solid #f0f0f0; padding-top: 8px; }
+  .card.expanded .card-bio { display: block; }
+
+  /* Match dimension mini-bars */
+  .dim-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; border-top: 1px solid #f0f0f0; padding-top: 8px; display: none; }
+  .card.expanded .dim-bars { display: grid; }
+  .dim-row { display: flex; flex-direction: column; gap: 2px; }
+  .dim-label { font-size: 10px; color: var(--li-gray); display: flex; justify-content: space-between; }
+  .dim-bg { height: 4px; border-radius: 2px; background: #e5e7eb; }
+  .dim-fill { height: 4px; border-radius: 2px; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--li-gray); }
+  .empty-state h4 { font-size: 16px; margin-bottom: 8px; }
+  .empty-state p  { font-size: 13px; }
+
+  /* ── Graph tab ── */
+  .chart-box { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 24px; }
+  .chart-legend { display: flex; gap: 15px; margin-top: 15px; font-size: 12px; font-weight: 600; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* ── Match Mapping tab ── */
+  .math-view { display: flex; flex-direction: column; gap: 12px; }
+  .math-card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 14px; }
+  .math-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .math-score { font-size: 22px; font-weight: 700; color: var(--li-blue); margin-left: auto; }
+  .math-formula { font-size: 11px; color: var(--li-gray); background: var(--li-bg); padding: 8px 10px; border-radius: 4px; font-family: monospace; margin-bottom: 10px; }
+  .dim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dim-card { background: var(--li-bg); border-radius: 6px; padding: 8px 10px; }
+  .dim-card-label { font-size: 11px; color: var(--li-gray); margin-bottom: 4px; }
+  .dim-card-bar-bg { height: 5px; border-radius: 3px; background: #e5e7eb; }
+  .dim-card-bar-fill { height: 5px; border-radius: 3px; }
+  .dim-card-val { font-size: 13px; font-weight: 600; margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="li-logo">in</div>
+    <h3>Executive Search Agent | Expert Relational Mode</h3>
+  </div>
+
+  <!-- ── Sidebar ── -->
+  <div class="sidebar">
+    <div class="sidebar-title">Search filters</div>
+
+    <div class="filter-group">
+      <label>City / Region</label>
+      <input type="text" id="flt-city" placeholder="e.g. San Francisco">
+    </div>
+
+    <div class="filter-group">
+      <label>Industry</label>
+      <input type="text" id="flt-industry" placeholder="e.g. AI, SaaS, Fintech">
+    </div>
+
+    <div class="filter-group">
+      <label>Ideal org size (for scoring)</label>
+      <div class="ideal-size-row">
+        <input type="number" id="flt-ideal-size" placeholder="e.g. 1000" min="1">
+        <span>employees</span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label>Connection degree</label>
+      <select id="flt-degree">
+        <option value="3">3rd or closer (all)</option>
+        <option value="2">2nd or closer</option>
+        <option value="1">1st only</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Min org size: <strong id="size-val">0</strong> emp</label>
+      <input type="range" id="flt-size" min="0" max="250000" step="500" value="0"
+             oninput="document.getElementById('size-val').innerText=parseInt(this.value).toLocaleString()">
+      <div class="range-row"><span>0</span><span>250,000</span></div>
+    </div>
+
+    <div class="filter-group">
+      <label>Min match score: <strong id="match-val">50%</strong></label>
+      <input type="range" id="flt-match" min="0" max="100" step="1" value="50"
+             oninput="document.getElementById('match-val').innerText=this.value+'%'">
+      <div class="range-row"><span>0%</span><span>100%</span></div>
+    </div>
+
+    <button class="btn-primary" style="width:100%" onclick="applyFilters()">Apply &amp; refresh</button>
+    <button class="btn-secondary" style="width:100%" onclick="resetFilters()">Reset filters</button>
+  </div>
+
+  <!-- ── Main ── -->
+  <div class="main">
+    <div class="search-bar">
+      <input id="query-input" type="text"
+             placeholder="e.g. 'Enterprise Fintech CEOs in NYC, 1000+ employees'"
+             onkeydown="if(event.key==='Enter') runQuery()">
+      <button class="btn-primary" onclick="runQuery()">Query Agent</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active"  onclick="switchTab('list',  this)">Relational List</div>
+      <div class="tab"         onclick="switchTab('graph', this)">Network Bubble Map</div>
+      <div class="tab"         onclick="switchTab('math',  this)">Match Mapping</div>
+    </div>
+
+    <div class="content">
+      <!-- List view -->
+      <div id="view-list" class="view active">
+        <div class="bot-msg">
+          <div class="spinner" id="spinner"></div>
+          <span id="bot-status">Agent standby. Enter a prompt to begin mapping.</span>
+        </div>
+        <div class="ceo-grid" id="results-grid"></div>
+      </div>
+
+      <!-- Graph view -->
+      <div id="view-graph" class="view">
+        <div class="chart-box">
+          <h4 style="margin:0 0 4px">Relational Network Analysis</h4>
+          <p style="font-size:12px;color:var(--li-gray);margin:0 0 20px">
+            Y-Axis: Match score (%) &nbsp;|&nbsp; Bubble size: Org headcount &nbsp;|&nbsp; Colour: Connection degree
+          </p>
+          <div style="height:380px"><canvas id="chart-network"
+            role="img" aria-label="Bubble chart of CEO match scores and org sizes"></canvas></div>
+          <div class="chart-legend">
+            <div class="legend-item"><span class="dot" style="background:var(--degree-1)"></span>1st degree</div>
+            <div class="legend-item"><span class="dot" style="background:var(--degree-2)"></span>2nd degree</div>
+            <div class="legend-item"><span class="dot" style="background:var(--degree-3)"></span>3rd degree</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Match Mapping view -->
+      <div id="view-math" class="view">
+        <div class="math-view" id="math-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────
+const state = { raw: [], filtered: [], chart: null, activeTab: 'list' };
+
+const DIM_COLORS = {
+  geo:     '#0a66c2',
+  industry:'#059669',
+  size:    '#d97706',
+  network: '#7c3aed',
+};
+
+// ── Avatar (FIX: handles single-word names) ──────────────────
+function makeAvatar(name) {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// ── Debounce (FIX: oninput no longer fires on every keystroke) ─
+function debounce(fn, ms) {
+  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+const debouncedFilter = debounce(applyFilters, 300);
+document.getElementById('flt-city').addEventListener('input', debouncedFilter);
+document.getElementById('flt-industry').addEventListener('input', debouncedFilter);
+document.getElementById('flt-ideal-size').addEventListener('input', debouncedFilter);
+document.getElementById('flt-degree').addEventListener('change', applyFilters);
+
+// ── Source badge helper ───────────────────────────────────────
+function sourceBadge(source) {
+  if (!source) return '';
+  if (source === 'verified')     return '<span class="badge badge-sec" style="background:#d1fae5;color:#065f46;border-color:#6ee7b7">✓ Verified</span>';
+  if (source.includes('sec'))    return '<span class="badge badge-sec">SEC verified</span>';
+  if (source.includes('forbes')) return '<span class="badge badge-forbes">Forbes</span>';
+  return '';
+}
+
+// ── Query ─────────────────────────────────────────────────────
+async function runQuery() {
+  const query    = document.getElementById('query-input').value.trim() || 'CEO';
+  const statusEl = document.getElementById('bot-status');
+  const spinner  = document.getElementById('spinner');
+  const gridEl   = document.getElementById('results-grid');
+
+  statusEl.textContent = `Mapping: "${query}"…`;
+  spinner.style.display = 'block';
+  gridEl.innerHTML = '';
+
+  try {
+    const res  = await fetch(`/search?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+
+    state.raw = data.map(c => ({
+      name:     c.name,
+      company:  c.company   || '',
+      city:     c.city      || 'USA',
+      industry: c.industry  || 'General',
+      size:     c.company_size || 0,
+      revenue:  c.revenue   || '',
+      degree:   c.degree    || 3,
+      match:    parseFloat(c.match_score) || 0,   // FIX: ensure float
+      bio:      c.bio_snippet || '',
+      source:   c.source    || '',
+      dims:     c.dims      || {},                 // NEW: dimension breakdown
+      avatar:   makeAvatar(c.name),
+    }));
+
+    applyFilters();
+  } catch (err) {
+    statusEl.innerHTML = `<span style="color:#dc2626">Error: cannot reach Flask backend on port 5000. Is it running?</span>`;
+  } finally {
+    spinner.style.display = 'none';
+  }
+}
+
+// ── Filters ───────────────────────────────────────────────────
+function applyFilters() {
+  const cityQ    = document.getElementById('flt-city').value.toLowerCase().trim();
+  const indQ     = document.getElementById('flt-industry').value.toLowerCase().trim();
+  const minMatch = parseFloat(document.getElementById('flt-match').value);
+  const minSize  = parseInt(document.getElementById('flt-size').value, 10);
+  const maxDeg   = parseInt(document.getElementById('flt-degree').value, 10);
+
+  state.filtered = state.raw.filter(c =>
+    (!cityQ  || c.city.toLowerCase().includes(cityQ))  &&
+    (!indQ   || c.industry.toLowerCase().includes(indQ)) &&
+    c.match  >= minMatch &&
+    c.size   >= minSize  &&
+    c.degree <= maxDeg
+  );
+
+  renderList();
+  renderMath();
+  if (state.activeTab === 'graph') renderChart();
+}
+
+function resetFilters() {
+  document.getElementById('flt-city').value       = '';
+  document.getElementById('flt-industry').value   = '';
+  document.getElementById('flt-ideal-size').value = '';
+  document.getElementById('flt-size').value       = 0;
+  document.getElementById('flt-match').value      = 50;
+  document.getElementById('flt-degree').value     = 3;
+  document.getElementById('size-val').innerText   = '0';
+  document.getElementById('match-val').innerText  = '50%';
+  applyFilters();
+}
+
+// ── List view ─────────────────────────────────────────────────
+function renderList() {
+  const grid = document.getElementById('results-grid');
+  const statusEl = document.getElementById('bot-status');
+  const n = state.filtered.length;
+
+  statusEl.textContent = n
+    ? `Found ${n} executive${n !== 1 ? 's' : ''} matching your requirements.`
+    : 'No results — try adjusting your filters.';
+
+  // FIX: empty state
+  if (n === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <h4>No executives found</h4>
+        <p>Try widening the city, industry, or match score filters,<br>or run a new query.</p>
+      </div>`;
+    return;
+  }
+
+  const degSuffix = d => d === 1 ? 'st' : d === 2 ? 'nd' : 'rd';
+  const degClass  = d => d === 1 ? 'badge-1st' : d === 2 ? 'badge-2nd' : '';
+
+  grid.innerHTML = state.filtered.map((c, i) => {
+    const dims = c.dims || {};
+    const hasDims = Object.keys(dims).length > 0;
+
+    const dimBars = hasDims ? `
+      <div class="dim-bars">
+        ${Object.entries(dims).map(([k, v]) => `
+          <div class="dim-row">
+            <div class="dim-label"><span>${k}</span><span>${(v !== null && v !== undefined ? Math.round(v) + '%' : 'N/A')}</span></div>
+            <div class="dim-bg"><div class="dim-fill" style="width:${v}%;background:${DIM_COLORS[k]||'#888'}"></div></div>
+          </div>`).join('')}
+      </div>` : '';
+
+    return `
+    <div class="card" onclick="this.classList.toggle('expanded')" data-idx="${i}">
+      <div class="card-top">
+        <div class="avatar" style="background:${avatarColor(c.degree)}">${c.avatar}</div>
+        <div class="card-info">
+          <div class="card-name">${c.name}</div>
+          <div class="card-company">${c.company || ''}</div>
+          <div class="card-title">CEO · ${c.industry}</div>
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge">&#128205; ${c.city}</span>
+        ${c.size ? `<span class="badge">&#128101; ${c.size.toLocaleString()}</span>` : ''}
+        ${c.revenue && c.revenue !== 'N/A' ? `<span class="badge">&#128200; ${c.revenue}</span>` : ''}
+        <span class="badge ${degClass(c.degree)}">${c.degree}${degSuffix(c.degree)} degree</span>
+        <span class="badge badge-match">&#9698; ${Math.round(c.match * 10) / 10}%</span>
+        ${sourceBadge(c.source)}
+      </div>
+      ${c.bio ? `<div class="card-bio">${c.bio}</div>` : ''}
+      ${dimBars}
+    </div>`;
+  }).join('');
+}
+
+function avatarColor(degree) {
+  return degree === 1 ? '#059669' : degree === 2 ? '#d97706' : '#0a66c2';
+}
+
+// ── Chart view ────────────────────────────────────────────────
+function renderChart() {
+  if (!state.filtered.length) return;
+
+  const bubbleData = state.filtered.map((c, i) => ({
+    x: i + 1,
+    y: Math.round(c.match * 10) / 10,
+    r: Math.max(6, Math.min(Math.sqrt(c.size / 200) + 4, 40)),  // sqrt scaling, capped
+    name: c.name, degree: c.degree
+  }));
+
+  const ctx = document.getElementById('chart-network').getContext('2d');
+  if (state.chart) state.chart.destroy();
+  state.chart = new Chart(ctx, {
+    type: 'bubble',
+    data: {
+      datasets: [{
+        label: 'Executives',
+        data: bubbleData,
+        backgroundColor: bubbleData.map(d =>
+          d.degree === 1 ? '#059669cc' : d.degree === 2 ? '#d97706cc' : '#0a66c2cc'),
+        borderColor: '#fff',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const p = ctx.raw;
+              return `${p.name}: ${p.y}% match | ${p.degree}° connection`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: { title: { display: true, text: 'Match score (%)' }, min: 0, max: 105 },
+        x: { display: false }
+      },
+      layout: { padding: 12 }
+    }
+  });
+}
+
+// ── Match Mapping view (NEW) ──────────────────────────────────
+function renderMath() {
+  const container = document.getElementById('math-grid');
+  const sorted    = [...state.filtered].sort((a, b) => b.match - a.match);
+
+  if (!sorted.length) {
+    container.innerHTML = '<div class="empty-state"><h4>No results to map</h4><p>Run a query first.</p></div>';
+    return;
+  }
+
+  const DIM_LABELS = {
+    geo:     'Geography fit (35%)',
+    industry:'Industry fit (30%)',
+    size:    'Org scale fit (25%)',
+    network: 'Network proximity (10%)',
+  };
+
+  container.innerHTML = sorted.map(c => {
+    const dims   = c.dims || {};
+    const hasDims= Object.keys(dims).length > 0;
+    const formula= hasDims
+      ? `f(x) = 0.35×${dims.geo||0} + 0.30×${dims.industry||0} + 0.25×${dims.size||0} + 0.10×${dims.network||0} = ${Math.round(c.match*10)/10}`
+      : 'Dimension data not available for this record.';
+
+    const dimCards = hasDims ? Object.entries(dims).map(([k, v]) => `
+      <div class="dim-card">
+        <div class="dim-card-label">${DIM_LABELS[k] || k}</div>
+        <div class="dim-card-bar-bg">
+          <div class="dim-card-bar-fill" style="width:${v}%;background:${DIM_COLORS[k]||'#888'}"></div>
+        </div>
+        <div class="dim-card-val" style="color:${DIM_COLORS[k]||'#888'}">${Math.round(v)}%</div>
+      </div>`).join('') : '';
+
+    return `
+    <div class="math-card">
+      <div class="math-header">
+        <div class="avatar" style="background:${avatarColor(c.degree)};width:40px;height:40px;font-size:14px;flex-shrink:0">${c.avatar}</div>
+        <div>
+          <div style="font-weight:600;font-size:14px">${c.name}</div>
+          <div style="font-size:12px;color:var(--li-gray)">${c.company || ''} · ${c.city}</div>
+        </div>
+        <div class="math-score">${Math.round(c.match * 10) / 10}%</div>
+      </div>
+      <div class="math-formula">${formula}</div>
+      ${hasDims ? `<div class="dim-grid">${dimCards}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+
+function switchTab(tabId, el) {
+  document.querySelectorAll('.tab').forEach(t  => t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`view-${tabId}`).classList.add('active');
+  state.activeTab = tabId;
+  if (tabId === 'graph') renderChart();
+}
+</script>
+</body>
+</html>
